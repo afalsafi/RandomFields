@@ -23,7 +23,7 @@ sz = 101
 gx = sx/nx
 gy = sy/ny
 gz = sy/nz
-hurst = 0.7
+hurst = 0.8
 
 x = np.arange(0, sx, gx)
 y = np.arange(0, sy, gy)
@@ -32,32 +32,43 @@ X, Y = np.meshgrid(x, y)
 
 c = RFFS.fourier_synthesis((nx, ny, sz), (sx, sy, sz),
                            hurst, rms_height = 0.8)
+
+hursts = np.zeros(nx)
 for i in range(nx):
     physical_sizes = np.array([sy, sz])
     topo = Topography(c[i,:,:], physical_sizes, True)
-
     analysis = CharacterisePeriodicSurface(topo)
-    new_hurst = analysis.estimate_hurst()
-    print("given hurst: {}, hurst error: {:.2}".format(hurst,
-                                                       ((new_hurst - hurst)
-                                                        / hurst)))
+    hursts[i] = analysis.estimate_hurst()
+    # print("given hurst: {}, hurst error: {:.2}".format(hurst,
+    #                                                    ((hursts[i] - hurst)
+    #                                                     / hurst)))
+mean_hurst_x = np.mean(hursts)
+print("\nX dir: given hurst: {}, hurst rel error: {:.3}%"
+      .format(hurst,
+              100*((mean_hurst_x - hurst)
+                   / hurst)))
 
+hursts = np.zeros(ny)
+for i in range(ny):
+    physical_sizes = np.array([sx, sz])
+    topo = Topography(c[:,i,:], physical_sizes, True)
+    analysis = CharacterisePeriodicSurface(topo)
+    hursts[i] = analysis.estimate_hurst()
+mean_hurst_y = np.mean(hursts)
+print("Y dir: given hurst: {}, hurst rel error: {:.3}%"
+      .format(hurst,
+              100*((mean_hurst_y - hurst)
+                   / hurst)))
 
-# for i in range(ny):
-#     physical_sizes = np.array([sx, sz])
-#     topo = Topography(c[:, i, :], physical_sizes, True)
-#     analysis = CharacterisePeriodicSurface(topo)
-#     new_hurst = analysis.estimate_hurst()
-#     print("given hurst: {}, hurst error: {:.2}".format(hurst,
-#                                                        ((new_hurst - hurst)
-#                                                         / hurst)))
+hursts = np.zeros(nz)
+for i in range(nz):
+    physical_sizes = np.array([sx, sy])
+    topo = Topography(c[:,:,i], physical_sizes, True)
+    analysis = CharacterisePeriodicSurface(topo)
+    hursts[i] = analysis.estimate_hurst()
 
-# for i in range(nz):
-#     physical_sizes = np.array([sx, sy])
-#     topo = Topography(c[:,:,i], physical_sizes, True)
-
-#     analysis = CharacterisePeriodicSurface(topo)
-#     new_hurst = analysis.estimate_hurst()
-#     print("given hurst: {}, hurst error: {:.2}".format(hurst,
-#                                                        ((new_hurst - hurst)
-#                                                         / hurst)))
+mean_hurst_z = np.mean(hursts)
+print("Z dir: given hurst: {}, hurst rel error: {:.3}%"
+      .format(hurst,
+              100*((mean_hurst_z - hurst)
+                   / hurst)))
