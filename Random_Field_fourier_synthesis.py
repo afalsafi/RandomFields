@@ -6,14 +6,14 @@ def _irfft2(karr, rarr):
     """
     Inverse 2d real-to-complex FFT
 
+
     Parameters
     ----------
-    karr : array_like
+    karr : array_like, shape nx//2 + 1, ny
         Fourier-space representation
-    rarr : array_like
+    rarr : array_like, shape nx, ny
         Real-space representation
-    progress_callback : function(i, n)
-        Function that is called to report progress.
+
     """
     nx, ny, nz = karr.shape
     for i in range(nx):
@@ -28,7 +28,7 @@ def _irfft2(karr, rarr):
 
 def _irfft3(karr, rarr):
     """
-    Inverse 2d real-to-complex FFT
+    Inverse 3d real-to-complex FFT
 
     Parameters
     ----------
@@ -36,8 +36,6 @@ def _irfft3(karr, rarr):
         Fourier-space representation
     rarr : array_like
         Real-space representation
-    progress_callback : function(i, n)
-        Function that is called to report progress.
     """
     nx, ny, nz = karr.shape
     for i in range(nx):
@@ -186,7 +184,7 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
         array will be created as a memory mapped file. This is useful for
         creating very large topography maps. (Default: None)
     kfn : str
-        Name of file that stores the Fourie-space array. If specified, real-space
+        Name of file that stores the Fourier-space array. If specified, real-space
         array will be created as a memory mapped file. This is useful for
         creating very large topography maps. (Default: None)
     progress_callback : function(i, n)
@@ -247,8 +245,8 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
             q_sq = qz ** 2 + qy ** 2 + qx ** 2
             if z == 0 and y == 0:
                 q_sq[0] = 1.
-            # making phases and amplitudes of the wave funcrion with random generating functions
-            # this functions could be passed to the function in the first place and you can see their deafult
+            # making phases and amplitudes of the wave function with random generating functions
+            # this functions could be passed to the function in the first place and you can see their default
             # functions in the signature of the function
             phase = phases_maker(kn)
             ran = fac * phase * amplitude_distribution(kn)
