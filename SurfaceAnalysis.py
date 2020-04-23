@@ -33,8 +33,8 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import scipy
 
-from common import compute_wavevectors, fftn, get_q_from_lambda
-from UniformLineScanAndTopography import Topography
+from .Tools.common import compute_wavevectors, fftn, get_q_from_lambda
+from .UniformLineScanAndTopography import Topography
 
 
 class CharacterisePeriodicSurface(object):

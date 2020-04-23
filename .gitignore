@@ -1,2 +1,7 @@
 *~
 __pycache__/*
+IO/__pycache__/*
+Nonuniform/__pycache__/*
+Uniform/__pycache__/*
+Tools/__pycache__/*
+.pytest_cache/*
