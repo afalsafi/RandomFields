@@ -1,8 +1,8 @@
-from .Random_Field_fourier_synthesis import fourier_synthesis 
+from .Random_Field_fourier_synthesis import fourier_synthesis
 
-from .SurfaceAnalysis import CharacterisePeriodicSurface
+from .PyCo.SurfaceAnalysis import CharacterisePeriodicSurface
 
-from .UniformLineScanAndTopography import Topography, UniformLineScan
+from .PyCo.UniformLineScanAndTopography import Topography, UniformLineScan
 # from .common import compute_wavevectors, ifftn
 
 import numpy as np

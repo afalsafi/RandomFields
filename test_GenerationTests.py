@@ -1,6 +1,7 @@
 from .Random_Field_fourier_synthesis import fourier_synthesis
-from .UniformLineScanAndTopography import Topography, UniformLineScan
-from .HeightContainer import UniformTopographyInterface
+
+from .PyCo.UniformLineScanAndTopography import Topography, UniformLineScan
+from .PyCo.HeightContainer import UniformTopographyInterface
 
 import pytest
 import numpy as np
