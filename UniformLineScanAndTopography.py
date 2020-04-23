@@ -33,8 +33,8 @@ import numpy as np
 from NuMPI import MPI
 from NuMPI.Tools import Reduction
 
-from HeightContainer import AbstractHeightContainer, UniformTopographyInterface, DecoratedTopography
-from Detrending import tilt_from_height, tilt_and_curvature
+from .HeightContainer import AbstractHeightContainer, UniformTopographyInterface, DecoratedTopography
+from .Uniform.Detrending import tilt_from_height, tilt_and_curvature
 
 class UniformLineScan(AbstractHeightContainer, UniformTopographyInterface):
     """

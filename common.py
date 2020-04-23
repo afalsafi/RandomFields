@@ -1,7 +1,6 @@
 #
 # Copyright 2019 Antoine Sanner
-#           2016, 2018 Lars Pastewka
-#           2016 Till Junge
+#           2018 Lars Pastewka
 # 
 # ### MIT license
 # 
@@ -28,125 +27,85 @@
 Bin for small common helper function and classes
 """
 
-from functools import wraps
-
 import numpy as np
 
 
-def compare_containers(cont_a, cont_b):
+def radial_average(C_xy, rmax, nbins, physical_sizes=None, full=True):
     """
-    compares whether two containers have the same content regardless of their
-    type. eg, compares [1, 2, 3] and (1, 2., 3.) as True
-    Keyword Arguments:
-    cont_a -- one container
-    cont_b -- other container
-    """
-    if cont_a != cont_b:
-        # pylint: disable=broad-except
-        # pylint: disable=multiple-statements
-        try:
-            if not len(cont_a) == len(cont_b):
-                return False
-            for a_item, b_item in zip(cont_a, cont_b):
-                if not a_item == b_item:
-                    return False
-        except Exception:
-            return False
-    return True
+    Compute radial average of quantities reported on a 2D grid.
 
+    Parameters
+    ----------
+    C_xy : array_like
+        2D-array of values to be averaged.
+    rmax : float
+        Maximum radius.
+    nbins : int
+        Number of bins for averaging.
+    physical_sizes : (float, float), optional
+        Physical size of the 2D grid. (Default: Size is equal to number of
+        grid points.)
+    full : bool
+        Number of quadrants contained in data. (Default: True)
+        True: Full radial average from 0 to 2*pi.
+        False: Only the one quarter of the full circle is present. Radial
+        average from 0 to pi/2.
 
-def evaluate_gradient(fun, x, delta):
-    """
-    Don't actually use this function in production code, it's not efficient.
-    Returns an approximation of the gradient evaluated using central
-    differences.
-
-    (grad f)_i = ((f(x+e_i*delta/2)-f(x-e_i*delta/2))/delta)
-
-    Arguments:
-    fun   -- function to be evaluated
-    x     -- point of evaluation
-    delta -- step width
+    Returns
+    -------
+    r_edges : array
+        Bin edges.
+    r_averages : array
+        Bin centers, obtained by averaging actual distance values.
+    n : array
+        Number of data points per radial grid.
+    C_r : array
+        Averaged values.
     """
     # pylint: disable=invalid-name
-    x = np.array(x)
-    grad = np.zeros_like(x).reshape(-1)
-    for i in range(x.size):
-        # pylint: disable=bad-whitespace
-        x_plus = x.copy().reshape(-1)
-        x_plus[i] += .5 * delta
-        x_minus = x.copy().reshape(-1)
-        x_minus[i] -= .5 * delta
-        grad[i] = (fun(x_plus.reshape(x.shape)) -
-                   fun(x_minus.reshape(x.shape))) / delta
-    grad.shape = x.shape
-    return grad
+    nx, ny = C_xy.shape
+    sx = sy = 1.
+    x = np.arange(nx)
+    y = np.arange(ny)
+    if full:
+        x = np.where(x > nx//2, nx-x, x)
+        y = np.where(y > ny//2, ny-y, y)
+    x = x/nx
+    y = y/ny
 
+    rmin = 0.0
 
-def mean_err(arr1, arr2, rfft=False):
-    "computes the mean element-wise difference between two containers"
-    comp_sl = [slice(0, max(d_1, d_2)) for (d_1, d_2)
-               in zip(arr1.shape, arr2.shape)]
-    if rfft:
-        comp_sl[-1] = slice(0, comp_sl[-1].stop // 2 + 1)
-    if arr1[tuple(comp_sl)].shape != arr2[tuple(comp_sl)].shape:
-        raise Exception("The array shapes differ: a: {}, b:{}".format(
-            arr1.shape, arr2.shape))
-    return abs(np.ravel(arr1[tuple(comp_sl)] - arr2[tuple(comp_sl)])).mean()
+    if physical_sizes is not None:
+        sx, sy = physical_sizes
+        x *= sx
+        y *= sy
+        rmin = min(sx/nx, sy/ny)
+    dr_xy = np.sqrt((x**2).reshape(-1, 1) + (y**2).reshape(1, -1))
 
+    # Quadratic -> similar statistics for each data point
+    # dr_r        = np.sqrt( np.linspace(0, rmax**2, nbins) )
 
-def compute_wavevectors(nb_grid_pts, physical_sizes, nb_dims):
-    """
-    computes and returns the wavevectors q that exist for the surfaces physical_sizes
-    and nb_grid_pts as one vector of components per dimension
-    """
-    vectors = list()
-    if nb_dims == 1:
-        nb_grid_pts = [nb_grid_pts]
-        physical_sizes = [physical_sizes]
-    for dim in range(nb_dims):
-        vectors.append(2 * np.pi * np.fft.fftfreq(
-            nb_grid_pts[dim],
-            physical_sizes[dim] / nb_grid_pts[dim]))
-    return vectors
+    # Power law -> equally spaced on a log-log plot
+    dr_r = np.exp(np.linspace(np.log(rmin), np.log(rmax), nbins))
 
-
-def fftn(arr, integral):
-    """
-    n-dimensional fft according to the conventions detailed in
-    power_spectrum.tex in the notes folder.
-
-    Keyword Arguments:
-    arr      -- Input array, can be complex
-    integral -- depending of dimensionality:
-                1D: Length of domain
-                2D: Area
-                etc
-    """
-    return integral / np.prod(arr.shape) * np.fft.fftn(arr)
-
-
-def ifftn(arr, integral):
-    """
-    n-dimensional ifft according to the conventions detailed in
-    power_spectrum.tex in the notes folder.
-
-    Keyword Arguments:
-    arr      -- Input array, can be complex
-    integral -- depending of dimensionality:
-                1D: Length of domain
-                2D: Area
-                etc
-    """
-    return np.prod(arr.shape) / integral * np.fft.ifftn(arr)
-
-
-def get_q_from_lambda(lambda_min, lambda_max):
-    """ Conversion between wavelength and angular frequency
-    """
-    if lambda_min == 0:
-        q_max = float('inf')
+    dr_max = np.max(dr_xy)
+    # Keep dr_max sorted
+    if dr_max > dr_r[-1]:
+        dr_r = np.append(dr_r, [dr_max+0.1])
     else:
-        q_max = 2 * np.pi / lambda_min
-    q_min = 2 * np.pi / lambda_max
-    return q_min, q_max
+        dr_r = np.append(dr_r, [dr_r[-1]+0.1])
+
+    # Linear interpolation
+    dr_xy = np.ravel(dr_xy)
+    C_xy = np.ravel(C_xy)
+    i_xy = np.searchsorted(dr_r, dr_xy)
+
+    n_r = np.bincount(i_xy, minlength=len(dr_r))
+    dravg_r = np.bincount(i_xy, weights=dr_xy, minlength=len(dr_r))
+    C_r = np.bincount(i_xy, weights=C_xy, minlength=len(dr_r))
+
+    nreg_r = np.where(n_r == 0, np.ones_like(n_r), n_r)
+    dravg_r /= nreg_r
+    C_r /= nreg_r
+
+    return np.append([0.0], dr_r), n_r, dravg_r, C_r

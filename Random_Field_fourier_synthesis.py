@@ -111,6 +111,7 @@ def self_affine_prefactor(dim, nb_grid_pts, physical_sizes, Hurst, rms_height=No
     [1]: Jacobs, Junge, Pastewka, Surf. Topgogr.: Metrol. Prop. 5, 013001 (2017)
 
     """
+
     nb_grid_pts = np.asarray(nb_grid_pts)
     physical_sizes = np.asarray(physical_sizes)
 
@@ -146,7 +147,8 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
                       rms_height=None, rms_slope=None, c0=None,
                       short_cutoff=None, long_cutoff=None, rolloff=1.0,
                       amplitude_distribution=lambda n: np.random.normal(size=n),
-                      phases_maker = lambda m: np.exp(2 * np.pi * np.random.rand(m) * 1j),
+                      phases_maker = lambda m: np.exp(2 * np.pi *
+                                                      np.random.rand(m) * 1j),
                       rfn=None, kfn=None):
     """
     Create a self-affine, randomly rough surface using a Fourier filtering
@@ -202,7 +204,8 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
     if short_cutoff is not None:
         q_max = 2 * np.pi / short_cutoff
     else:
-        q_max = np.pi * np.min(np.asarray(nb_grid_pts) / np.asarray(physical_sizes))
+        q_max = np.pi * np.min(np.asarray(nb_grid_pts)
+                               / np.asarray(physical_sizes))
 
     if long_cutoff is not None:
         q_min = 2 * np.pi / long_cutoff
@@ -210,8 +213,10 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
         q_min = None
 
     if c0 is None:
-        fac = self_affine_prefactor(dim ,nb_grid_pts, physical_sizes, hurst, rms_height=rms_height,
-                                    rms_slope=rms_slope, short_cutoff=short_cutoff,
+        fac = self_affine_prefactor(dim ,nb_grid_pts, physical_sizes,
+                                    hurst, rms_height=rms_height,
+                                    rms_slope=rms_slope,
+                                    short_cutoff=short_cutoff,
                                     long_cutoff=long_cutoff)
     else:
         # prefactor for the fourier heights
@@ -224,7 +229,8 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
     s = np.ones(max_dim)
     n[0:dim:1] = nb_grid_pts
     s[0:dim:1] = physical_sizes
-    # kshape: the shape of the fourier series coeffs considering the symmetry of real Fourier transform
+    # kshape: the shape of the fourier series coeffs considering
+    # the symmetry of real Fourier transform
     kshape = n
     kn = n[0] // 2 + 1 # SYMMETRY
     kshape[0] = kn
@@ -247,8 +253,10 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
             q_sq = qz ** 2 + qy ** 2 + qx ** 2
             if z == 0 and y == 0:
                 q_sq[0] = 1.
-            # making phases and amplitudes of the wave funcrion with random generating functions
-            # this functions could be passed to the function in the first place and you can see their deafult
+            # making phases and amplitudes of the wave funcrion with
+            # random generating functions
+            # this functions could be passed to the function in the
+            # first place and you can see their deafult
             # functions in the signature of the function
             phase = phases_maker(kn)
             ran = fac * phase * amplitude_distribution(kn)
@@ -272,16 +280,17 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
                 if n[2] % 2 == 0:
                     karr[ix, :, 0] = np.real(karr[ix, :, 0])
                     karr[ix, :, n[2] // 2] = np.real(karr[ix, :, n[2] // 2])
-                    karr[ix, :, 1:n[2] // 2] = karr[ix, :, -1:n[2] // 2:-1].conj()
+                    karr[ix, :, 1:n[2] // 2] = karr[ix, :,
+                                                    -1:n[2] // 2:-1].conj()
                 else:
                     karr[ix, :, 0] = np.real(karr[ix, :, 0])
-                    karr[ix, :, 1:n[2] // 2 + 1] = karr[ix, :, -1:n[2] // 2:-1].conj()
+                    karr[ix, :, 1:n[2] // 2 + 1] = karr[ix, :,
+                                                        -1:n[2] // 2:-1].conj()
 
     if dim == 3:
         _irfft3(karr, rarr)
     elif dim == 2:
         _irfft2(karr, rarr)
     else:
-        karr[0] = np.real(karr[0])
         rarr = np.fft.irfft(karr.T)
     return rarr

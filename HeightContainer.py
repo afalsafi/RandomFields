@@ -71,6 +71,7 @@ class AbstractHeightContainer(object):
 
     def __getattr__(self, name):
         if name in self._functions:
+            print(name)
             def func(*args, **kwargs):
                 return self._functions[name](self, *args, **kwargs)
 
