@@ -3,6 +3,7 @@ import scipy.stats as stats
 
 
 def _irfft2(karr, rarr):
+    nx, ny, nz = karr.shape
     """
     Inverse 2d real-to-complex FFT
 
@@ -15,15 +16,33 @@ def _irfft2(karr, rarr):
         Real-space representation, , shape nx, ny
 
     """
-    nx, ny, nz = karr.shape
-    for i in range(nx):
-        karr[i, :, 0] = np.fft.ifft(karr[i, :, 0])
+
+    """
+    This makes sure that no extraneous elements of the first row is utilized
+    """
+    karr[0, :, 0] = np.fft.irfft(karr[0, 0:ny//2+1, 0])
+
+    if ny % 2 == 0:
+        """
+        This makes sure that no extraneous elements of the last row is utilized
+        in case of having even number of rows
+        """
+        karr[-1, :, 0] = np.fft.irfft(karr[-1, 0:ny//2+1, 0])
+
+        # here ifft is applied on the rest of the rows
+        for i in range(1, nx - 1):
+            karr[i, :, 0] = np.fft.ifft(karr[i, :, 0])
+    else:
+        # here ifft is applied on the rest of the rows
+        for i in range(1, nx):
+            karr[i, :, 0] = np.fft.ifft(karr[i, :, 0])
+
+    # This loop applies irfft on all columns of the array
     for j in range(ny):
-        if rarr.shape[0] % 2 == 0:
+        if nx % 2 == 0:
             rarr[:, j] = np.fft.irfft(karr[:, j, 0])
         else:
             rarr[:, j] = np.fft.irfft(karr[:, j, 0], n=rarr.shape[0])
-
 
 
 def _irfft3(karr, rarr):
@@ -144,9 +163,10 @@ def self_affine_prefactor(dim, nb_grid_pts, physical_sizes, Hurst, rms_height=No
 def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
                       rms_height=None, rms_slope=None, c0=None,
                       short_cutoff=None, long_cutoff=None, rolloff=1.0,
-                      amplitude_distribution=lambda n: np.random.normal(size=n),
-                      phases_maker = lambda m: np.exp(2 * np.pi *
-                                                      np.random.rand(m) * 1j),
+                      amplitude_distribution=lambda n: np.random.normal(
+                          size=n),
+                      phases_maker=lambda m: np.exp(2 * np.pi *
+                                                    np.random.rand(m) * 1j),
                       rfn=None, kfn=None):
     """
     Create a self-affine, randomly rough surface using a Fourier filtering
@@ -211,26 +231,27 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
         q_min = None
 
     if c0 is None:
-        fac = self_affine_prefactor(dim ,nb_grid_pts, physical_sizes,
+        fac = self_affine_prefactor(dim, nb_grid_pts, physical_sizes,
                                     hurst, rms_height=rms_height,
                                     rms_slope=rms_slope,
                                     short_cutoff=short_cutoff,
                                     long_cutoff=long_cutoff)
     else:
         # prefactor for the fourier heights
-        fac = np.sqrt(c0) * np.prod(nb_grid_pts) / np.sqrt(np.prod(physical_sizes))
+        fac = np.sqrt(c0) * np.prod(nb_grid_pts) / \
+            np.sqrt(np.prod(physical_sizes))
         #                   ^                       ^ C(q) = c0 q^(-2-2H) = 1 / A |fh(q)|^2
         #                   |                         and h(x,y) = sum(1/A fh(q) e^(iqx)))
         #                   compensate for the np.fft normalisation
 
-    n = np.ones(max_dim, dtype = int)
+    n = np.ones(max_dim, dtype=int)
     s = np.ones(max_dim)
     n[0:dim:1] = nb_grid_pts
     s[0:dim:1] = physical_sizes
     # kshape: the shape of the fourier series coeffs considering
     # the symmetry of real Fourier transform
     kshape = n
-    kn = n[0] // 2 + 1 # SYMMETRY
+    kn = n[0] // 2 + 1  # SYMMETRY
     kshape[0] = kn
 
     rarr = np.empty(nb_grid_pts, dtype=np.float64)
@@ -263,16 +284,7 @@ def fourier_synthesis(nb_grid_pts, physical_sizes, hurst,
             if q_min is not None:
                 mask = q_sq < q_min ** 2
                 karr[mask, y, z] = (rolloff * ran[mask] *
-                                 q_min ** (-((dim * 0.5) + hurst)))
-        for ix in [0, -1] if n[0] % 2 == 0 else [0]:
-            # Enforce symmetry
-            if n[1] % 2 == 0:
-                karr[ix, 0, :] = np.real(karr[ix, 0, :])
-                karr[ix, n[1] // 2, :] = np.real(karr[ix, n[1] // 2, :])
-                karr[ix, 1:n[1] // 2, :] = karr[ix, -1:n[1] // 2:-1, :].conj()
-            else:
-                karr[ix, 0, :] = np.real(karr[ix, 0, :])
-                karr[ix, 1:n[1] // 2 + 1, :] = karr[ix, -1:n[1] // 2:-1, :].conj()
+                                    q_min ** (-((dim * 0.5) + hurst)))
         if dim == 3:
             for ix in [0, -1] if n[0] % 2 == 0 else [0]:
                 if n[2] % 2 == 0:
